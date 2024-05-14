@@ -38,6 +38,18 @@ class UserServise:
         else:
             return "error"
 
+    def deleet_phrase(self, email, phrase, translate):
+
+        temp = database_service.check_phrase(email, phrase, translate)
+        print(temp)
+        if temp == -1:
+            return "not have"
+        elif temp == 1:
+            database_service.delete_pharse_db(email, phrase, translate)
+            return "Successfully"
+        else:
+            return "error"
+
     def reset_password(self, email) -> str:
 
         password = database_service.get_password_user(email)
