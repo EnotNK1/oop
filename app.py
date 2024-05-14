@@ -10,7 +10,6 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from userservice.userservice import user_service
 from database.database import database_service
-from userservice.emailservise import send_email
 import math
 
 Window.size = (1100,700)
@@ -57,6 +56,55 @@ class AythScreen(Screen):
     def recovery_password(self, instance):
         self.manager.switch_to(ForgotScreen())
 
+class NewPassScreen(Screen):
+    def __init__(self, email, **kwargs):
+        super().__init__(**kwargs)
+        self.email = email
+        self.back_button = Button(text='Back', on_press=self.back, size_hint=(0.2, 0.1), pos_hint={'center_x': -0.6, 'center_y': 1},
+                                  background_color=("#ffffff"), color=("#0a0500"), background_normal='')
+        self.cnange_button = Button(text='Сhange password', on_press=self.update_pas, size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': -0.2},
+                                   background_color=("#ffffff"), color=("#0a0500"), background_normal='')
+        self.pas_input = TextInput(password=True, hint_text='Old password', size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0.3})
+        self.new_pas_input = TextInput(password=True, hint_text='New password', size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0.15})
+        self.conf_input = TextInput(password=True, hint_text='Confirm new password', size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0})
+        self.lable = Label(text='', pos_hint={'center_x': 0.5, 'center_y': -0.1},
+                                     font_size=15, color=("#e80e0e"))
+
+
+        layout = self.create_layout()
+        self.add_widget(layout)
+
+    def create_layout(self):
+        layout = FloatLayout(size_hint=(None, None), pos_hint={'center_x': 0.5, 'center_y': 0.7}, width=400, height=300)
+        self.lable.opacity = 0
+
+        layout.add_widget(Label(text='Смена пароля', pos_hint={'center_x': 0.5, 'center_y': 0.6}, font_size=30))
+        layout.add_widget(self.back_button)
+        layout.add_widget(self.cnange_button)
+        layout.add_widget(self.pas_input)
+        layout.add_widget(self.new_pas_input)
+        layout.add_widget(self.conf_input)
+        layout.add_widget(self.lable)
+        return layout
+
+    def update_pas(self, instance):
+        if self.pas_input.text != database_service.get_password_user(self.email):
+            self.lable.text = "password is incorrect"
+            self.lable.opacity = 1
+        elif self.new_pas_input.text != self.conf_input.text:
+            self.lable.text = "password mismatch"
+            self.lable.opacity = 1
+        elif len(self.new_pas_input.text) < 5:
+            self.lable.text = "password must be more than 4 characters"
+            self.lable.opacity = 1
+        else:
+            temp = user_service.update_password(self.email, self.new_pas_input.text)
+            print(temp)
+            self.manager.switch_to(Profile(self.email))
+    def back(self, instance):
+        self.manager.switch_to(Profile(self.email))
+
+
 class ForgotScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -65,6 +113,8 @@ class ForgotScreen(Screen):
         self.send_message = Button(text='Send message', on_press=self.send, size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0.1},
                                    background_color=("#ffffff"), color=("#0a0500"), background_normal='')
         self.email_input = TextInput(hint_text='Enter your email', size_hint=(0.8, 0.1), pos_hint={'center_x': 0.5, 'center_y': 0.3})
+        self.lable = Label(text='message has been sent', pos_hint={'center_x': 0.5, 'center_y': 0.2},
+                                     font_size=15, color=("#e80e0e"))
 
 
         layout = self.create_layout()
@@ -72,18 +122,26 @@ class ForgotScreen(Screen):
 
     def create_layout(self):
         layout = FloatLayout(size_hint=(None, None), pos_hint={'center_x': 0.5, 'center_y': 0.7}, width=400, height=300)
+        self.lable.opacity = 0
 
         layout.add_widget(Label(text='Восстановление пароля', pos_hint={'center_x': 0.5, 'center_y': 0.6}, font_size=30))
         layout.add_widget(self.back_button)
         layout.add_widget(self.send_message)
         layout.add_widget(self.email_input)
+        layout.add_widget(self.lable)
         return layout
 
     def back(self, instance):
         self.manager.switch_to(AythScreen())
 
     def send(self, instance):
-        user_service.reset_password(self.email_input.text)
+        if user_service.reset_password(self.email_input.text) == "The password email has been sent":
+            self.lable.text = "message has been sent"
+            self.lable.opacity = 1
+        else:
+            self.lable.text = "incorrect email"
+            self.lable.opacity = 1
+
 
 class RegistrationScreen(Screen):
     def __init__(self, **kwargs):
@@ -502,6 +560,9 @@ class Profile(Screen):
                                   background_color=("#ffffff"), color=("#0a0500"), background_normal='')
         self.log_out_button = Button(text='Log out', on_press=self.log_out, size_hint=(0.5, 0.2), pos_hint={'center_x': 1.6, 'center_y': -1},
                                      background_color=("#ffffff"), color=("#0a0500"), background_normal='')
+        self.new_pass_button = Button(text='Change password', on_press=self.new_pas, size_hint=(0.5, 0.1),
+                                     pos_hint={'center_x': -0.5, 'center_y': -1},
+                                     background_color=("#ffffff"), color=("#0a0500"), background_normal='')
 
         layout = self.create_layout()
         self.add_widget(layout)
@@ -513,6 +574,7 @@ class Profile(Screen):
         layout.add_widget(Label(text=f'Количество записей: {len(phrases)//2}', pos_hint={'center_x': 0.5, 'center_y': 0.5}, font_size=20))
         layout.add_widget(self.back_button)
         layout.add_widget(self.log_out_button)
+        layout.add_widget(self.new_pass_button)
         return layout
 
     def back(self, instance):
@@ -521,11 +583,15 @@ class Profile(Screen):
     def log_out(self, instance):
         self.manager.switch_to(AythScreen())
 
+    def new_pas(self, instance):
+        self.manager.switch_to(NewPassScreen(self.email))
+
 class MyApp(App):
     def build(self):
         sm = ScreenManager()
         sm.add_widget(AythScreen(name='ayth screen'))
         sm.add_widget(ForgotScreen(name='forgot screen'))
+        sm.add_widget(NewPassScreen(name='new pass', email='email'))
         sm.add_widget(RegistrationScreen(name='Register'))
         sm.add_widget(Profile(name='profile', email='email'))
         sm.add_widget(NewPhrase(name='new phrase screen', email='email'))

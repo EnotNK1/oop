@@ -90,6 +90,18 @@ class DatabaseService:
                 # print(error)
                 return -1
 
+    def set_password_user(self, email, new_pas):
+        with session_factory() as session:
+            try:
+                user = session.get(Users, email)
+                user.password = new_pas
+                session.commit()
+                return 1
+
+            except (Exception, Error) as error:
+                # print(error)
+                return -1
+
     def delete_pharse_db(self, email, phrase, translate):
         with session_factory() as session:
             try:

@@ -1,5 +1,5 @@
 from database.database import database_service
-from userservice.emailservise import send_email
+from userservice.emailservise import email_service
 import uuid
 from smtplib import SMTPRecipientsRefused
 from psycopg2 import Error
@@ -57,13 +57,19 @@ class UserServise:
             try:
                 subject = "Password Reset"
                 message = f"Your password is: {password}"
-                send_email(email, subject, message)
+                email_service.send_email(email, subject, message)
                 return "The password email has been sent"
             except SMTPRecipientsRefused:
                 return "incorrect email"
         else:
             return "No user with this e-mail account was found"
 
+    def update_password(self, email, new_pas):
+        password = database_service.get_password_user(email)
+        if password != -1:
+            database_service.set_password_user(email, new_pas)
+            return "ok"
+        return "error"
 
 
 user_service: UserServise = UserServise()
